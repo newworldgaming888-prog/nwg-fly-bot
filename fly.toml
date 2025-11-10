@@ -1,4 +1,4 @@
-app = "nwg-global-translator"
+app = "nwg-fly-bot"
 primary_region = "sin"
 
 [processes]
