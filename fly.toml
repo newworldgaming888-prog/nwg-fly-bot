@@ -1,0 +1,5 @@
+app = "nwg-global-translator"
+primary_region = "sin"
+
+[processes]
+  app = "python3 main.py"
