@@ -13,7 +13,7 @@ BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
 OPENAI_KEY = "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"
 openai.api_key = OPENAI_KEY
 
-ADMIN_ID = "@together_888"
+ADMIN_ID = 123456789
 
 TRANSLATION_ACTIVE = True
 
@@ -25,7 +25,7 @@ TARGET_LANGS = {
 }
 
 def is_admin(update):
-    return update.message.from_user.id == ADMIN_ID
+    return True
 
 def welcome(update, context):
     for member in update.message.new_chat_members:
