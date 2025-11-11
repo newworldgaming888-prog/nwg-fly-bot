@@ -13,7 +13,7 @@ BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
 OPENAI_KEY = "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"
 openai.api_key = OPENAI_KEY
 
-ADMIN_ID = 123456789
+ADMIN_ID = "@together_888"
 
 TRANSLATION_ACTIVE = True
 
@@ -26,6 +26,15 @@ TARGET_LANGS = {
 
 def is_admin(update):
     return update.message.from_user.id == ADMIN_ID
+
+def welcome(update, context):
+    for member in update.message.new_chat_members:
+        update.message.reply_text(
+            f"👋 환영합니다, {member.first_name}!\n\n"
+            "이 그룹은 자동 번역이 활성화되어 있습니다 🌍\n"
+            "그냥 메시지를 보내면 자동으로 여러 언어로 번역돼요.\n\n"
+            "명령어 안내: /help"
+        )
 
 def safe_call(func):
     def wrapper(*args, **kwargs):
