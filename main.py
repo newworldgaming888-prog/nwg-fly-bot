@@ -133,7 +133,10 @@ dp.add_handler(CommandHandler("on", cmd_on))
 dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("lang", cmd_lang))
 
-dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
+dp.add_handler(MessageHandler(
+    Filters.text & Filters.chat_type.groups & ~Filters.command,
+    handle_text
+))
 dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
 
 updater.start_polling()
