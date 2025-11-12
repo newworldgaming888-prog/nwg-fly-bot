@@ -17,6 +17,8 @@ ADMIN_ID = 123456789
 
 TRANSLATION_ACTIVE = True
 
+GPT_MODEL = "gpt-4o-mini"
+
 TARGET_LANGS = {
     "Korean": ("ko", "🇰🇷 Korean"),
     "English": ("en", "🇺🇸 English"),
@@ -55,7 +57,7 @@ def detect_language(text):
         f"Message: {text}"
     )
     response = openai.ChatCompletion.create(
-        model="gpt-5",
+        model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -80,7 +82,7 @@ Return only the translated sentence.
 Message: {text}
 """
     response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
+        model=GPT_MODEL,
         messages=[{"role":"user","content":prompt}]
     )
     print(f"response : {response}")
