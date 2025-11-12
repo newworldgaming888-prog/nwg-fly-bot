@@ -129,6 +129,8 @@ def cmd_lang(update, context):
 updater = Updater(BOT_TOKEN, use_context=True)
 dp = updater.dispatcher
 
+dp.add_handler(ChatMemberHandler(welcome, ChatMemberHandler.CHAT_MEMBER))
+
 dp.add_handler(CommandHandler("on", cmd_on))
 dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("lang", cmd_lang))
