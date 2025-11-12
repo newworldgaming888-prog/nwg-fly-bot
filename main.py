@@ -80,9 +80,10 @@ Return only the translated sentence.
 Message: {text}
 """
     response = openai.ChatCompletion.create(
-        model="gpt-5",
+        model="gpt-4o-mini",
         messages=[{"role":"user","content":prompt}]
     )
+    print(response)
     return response.choices[0].message.content.strip()
 
 @safe_call
