@@ -83,7 +83,7 @@ Message: {text}
         model="gpt-4o-mini",
         messages=[{"role":"user","content":prompt}]
     )
-    print(response)
+    print(f"response : {response}")
     return response.choices[0].message.content.strip()
 
 @safe_call
