@@ -48,6 +48,7 @@ def safe_call(func):
 
 @safe_call
 def detect_language(text):
+    print(f"🧭 detect_language: {text}")
     prompt = (
         "Detect the language of this message. "
         "Respond only with one word: Korean, English, Japanese, or Chinese.\n\n"
@@ -90,6 +91,7 @@ def speech_to_text(file_path):
     return audio["text"]
 
 def translate_text_handler(text, update):
+    print(f"🧭 translate_text_handler: {text}")
     msg_id = update.message.message_id
     source_lang = detect_language(text)
     print(f"🧭 Detected language: {source_lang}")
