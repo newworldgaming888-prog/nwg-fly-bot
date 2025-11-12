@@ -182,6 +182,7 @@ def on_my_chat_member(update, context):
 # 1-B) 메시지의 new_chat_members 경로 (방에 누가 들어왔을 때)
 
 def on_new_members(update, context):
+    global isBotJoin
     isBotJoin = True
     # 봇 자신이 들어온 경우만 환영
     for member in update.message.new_chat_members:
