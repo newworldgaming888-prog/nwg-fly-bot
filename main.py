@@ -8,7 +8,7 @@ import concurrent.futures
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_KEY = os.getenv("OPENAI_KEY")
 
-GPT_MODEL = "gpt-3.5-turbo"
+GPT_MODEL = "gpt-4o-mini"
 
 if not BOT_TOKEN or not OPENAI_KEY:
     print("❌ BOT_TOKEN 또는 OPENAI_KEY 누락됨")
