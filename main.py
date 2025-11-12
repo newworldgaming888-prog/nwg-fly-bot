@@ -1,7 +1,7 @@
 
 import telegram
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ChatMemberHandler
-import openai
+from openai import OpenAI
 from pydub import AudioSegment
 
 import os
@@ -12,6 +12,8 @@ if os.environ.get("RUN_ENV") != "fly":
 BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
 OPENAI_KEY = "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"
 openai.api_key = OPENAI_KEY
+
+client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
 ADMIN_ID = 123456789
 
@@ -49,56 +51,37 @@ def safe_call(func):
     return wrapper
 
 @safe_call
-@safe_call
 def detect_language(text):
     prompt = (
         "Detect the language of this text. Respond with only ONE word: "
         "Korean, English, Japanese, or Chinese.\n\nText:\n" + text
     )
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-        # 응답 전체를 출력 (Fly.io logs에서 확인 가능)
-        print("🔍 GPT raw response:", response)
-
-        # 안전한 파싱 (새 포맷 대응)
-        content = ""
-        if hasattr(response.choices[0], "message"):
-            content = response.choices[0].message.get("content", "").strip()
-        elif hasattr(response.choices[0], "text"):
-            content = response.choices[0].text.strip()
-
-        if not content:
-            print("⚠️ GPT 응답 비어 있음, 구조:", response)
-            return None
-
-        print(f"🧭 Detected language: {content}")
-        return content
-
-    except Exception as e:
-        print(f"⚠️ detect_language() error: {e}")
-        return None
+    content = response.choices[0].message.content.strip()
+    print(f"🧭 Detected language: {content}")
+    return content
 
 @safe_call
 def translate(text, target_code):
     prompt = f"""
-Translate the following message into {target_code}.
-Tone: Professional business tone.
-Clear, concise, polite. No slang. No emojis.
+Translate this message into {target_code}.
+Use a natural, professional, and polite tone.
 Return only the translated sentence.
-Message: {text}
-"""
-    response = openai.ChatCompletion.create(
-        model=GPT_MODEL,
-        messages=[{"role":"user","content":prompt}]
-    )
-    print(f"response : {response}")
-    return response.choices[0].message.content.strip()
 
+Text: {text}
+"""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    translated = response.choices[0].message.content.strip()
+    return translated
+    
 @safe_call
 def speech_to_text(file_path):
     audio = openai.Audio.transcribe("whisper-1", open(file_path, "rb"))
