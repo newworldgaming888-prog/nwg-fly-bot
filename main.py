@@ -1,6 +1,6 @@
 
 import telegram
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ChatMemberHandler
 import openai
 from pydub import AudioSegment
 
