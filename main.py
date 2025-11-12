@@ -58,7 +58,7 @@ def detect_language(text):
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -76,10 +76,11 @@ Return only the translated sentence.
 Text: {text}
 """
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
     translated = response.choices[0].message.content.strip()
+    print(f"🧭 translated: {translated}")
     return translated
 
 @safe_call
