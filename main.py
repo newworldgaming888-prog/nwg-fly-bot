@@ -91,13 +91,14 @@ def speech_to_text(file_path):
     return audio["text"]
 
 def translate_text_handler(text, update):
-    print(f"🧭 translate_text_handler: {text}")
+    print(f"🧭 1 translate_text_handler: {text}")
     msg_id = update.message.message_id
     source_lang = detect_language(text)
-    print(f"🧭 Detected language: {source_lang}")
+    print(f"🧭 2 translate_text_handler: {source_lang}")
     if not source_lang:
         return
     for lang, (code, label) in TARGET_LANGS.items():
+        print(f"🧭 3 translate_text_handler: {lang, source_lang}")
         if lang != source_lang:
             translated = translate(text, code)
             if translated:
