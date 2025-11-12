@@ -78,6 +78,7 @@ def speech_to_text(file_path):
 def translate_text_handler(text, update):
     msg_id = update.message.message_id
     source_lang = detect_language(text)
+    print(f"🧭 Detected language: {source_lang}")
     if not source_lang:
         return
     for lang, (code, label) in TARGET_LANGS.items():
@@ -99,8 +100,10 @@ def handle_voice(update, context):
 
 def handle_text(update, context):
     if not TRANSLATION_ACTIVE:
+        print("🚫 Translation paused")
         return
     translate_text_handler(update.message.text, update)
+    
 
 def cmd_on(update, context):
     global TRANSLATION_ACTIVE
@@ -136,7 +139,7 @@ dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("lang", cmd_lang))
 
 dp.add_handler(MessageHandler(
-    Filters.text & Filters.chat_type.groups & ~Filters.command,
+    Filters.text & ~Filters.command,
     handle_text
 ))
 dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
