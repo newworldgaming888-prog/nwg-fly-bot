@@ -82,7 +82,7 @@ def translate_text_handler(text, update):
         if lang != source_lang:
             translated = translate(text, code)
             if translated:
-                results.append(f"{label}: " + "\n" + {translated}")
+                results.append(f"{label}:\n{translated}")
 
     if results:
         output = "🌍 Translations:\n\n" + "\n\n".join(results)
