@@ -11,7 +11,6 @@ if os.environ.get("RUN_ENV") != "fly":
 
 BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
 OPENAI_KEY = "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"
-openai.api_key = OPENAI_KEY
 
 client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
@@ -81,7 +80,7 @@ Text: {text}
     )
     translated = response.choices[0].message.content.strip()
     return translated
-    
+
 @safe_call
 def speech_to_text(file_path):
     audio = openai.Audio.transcribe("whisper-1", open(file_path, "rb"))
