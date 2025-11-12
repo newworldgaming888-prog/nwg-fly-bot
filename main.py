@@ -2,10 +2,13 @@ from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 from openai import OpenAI
 from pydub import AudioSegment
 import os
+import concurrent.futures
 
 # 환경 변수
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_KEY = os.getenv("OPENAI_KEY")
+
+GPT_MODEL = "gpt-3.5-turbo
 
 if not BOT_TOKEN or not OPENAI_KEY:
     print("❌ BOT_TOKEN 또는 OPENAI_KEY 누락됨")
@@ -38,7 +41,7 @@ def detect_language(text):
         "Korean, English, Japanese, or Chinese.\n\nText:\n" + text
     )
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
     content = response.choices[0].message.content.strip()
@@ -55,7 +58,7 @@ Return only the translated sentence.
 Text: {text}
 """
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
     translated = response.choices[0].message.content.strip()
@@ -70,6 +73,26 @@ def speech_to_text(file_path):
     )
     return audio.text
 
+# def translate_text_handler(text, update):
+#     msg_id = update.message.message_id
+#     source_lang = detect_language(text)
+#     if not source_lang:
+#         update.message.reply_text("⚠️ 언어 감지 실패.", reply_to_message_id=msg_id)
+#         return
+
+#     results = []
+#     for lang, (code, label) in TARGET_LANGS.items():
+#         if lang != source_lang:
+#             translated = translate(text, code)
+#             if translated:
+#                 results.append(f"{label}:\n{translated}")
+
+#     if results:
+#         output = "🌍 Translations:\n\n" + "\n\n".join(results)
+#         update.message.reply_text(output, reply_to_message_id=msg_id)
+#     else:
+#         update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
+
 def translate_text_handler(text, update):
     msg_id = update.message.message_id
     source_lang = detect_language(text)
@@ -78,17 +101,20 @@ def translate_text_handler(text, update):
         return
 
     results = []
-    for lang, (code, label) in TARGET_LANGS.items():
-        if lang != source_lang:
-            translated = translate(text, code)
-            if translated:
-                results.append(f"{label}:\n{translated}")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for lang, (code, label) in TARGET_LANGS.items():
+            if lang != source_lang:
+                futures.append(executor.submit(translate, text, code))
 
-    if results:
-        output = "🌍 Translations:\n\n" + "\n\n".join(results)
-        update.message.reply_text(output, reply_to_message_id=msg_id)
-    else:
-        update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
+        for (lang, (code, label)), f in zip(TARGET_LANGS.items(), futures):
+            if lang != source_lang:
+                translated = f.result()
+                if translated:
+                    results.append(f"{label}:\n{translated}")
+
+    output = "🌍 Translations:\n\n" + "\n\n".join(results)
+    update.message.reply_text(output, reply_to_message_id=msg_id)
 
 
 def handle_voice(update, context):
