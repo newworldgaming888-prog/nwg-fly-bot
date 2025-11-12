@@ -1,25 +1,18 @@
-
-import telegram
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ChatMemberHandler
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 from openai import OpenAI
 from pydub import AudioSegment
-
 import os
-if os.environ.get("RUN_ENV") != "fly":
-    print("❌ Local execution disabled. Bot only runs on Fly.io.")
-    exit()
 
-BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
-OPENAI_KEY = "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"
+# 환경 변수
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OPENAI_KEY = os.getenv("OPENAI_KEY")
 
-# client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
+if not BOT_TOKEN or not OPENAI_KEY:
+    print("❌ BOT_TOKEN 또는 OPENAI_KEY 누락됨")
+    exit(1)
+
 client = OpenAI(api_key=OPENAI_KEY)
-
-ADMIN_ID = 123456789
-
 TRANSLATION_ACTIVE = True
-
-GPT_MODEL = "gpt-4o-mini"
 
 TARGET_LANGS = {
     "Korean": ("ko", "🇰🇷 Korean"),
@@ -28,25 +21,13 @@ TARGET_LANGS = {
     "Chinese": ("zh-CN", "🇨🇳 Chinese")
 }
 
-def is_admin(update):
-    return True
-
-def welcome(update, context):
-    for member in update.message.new_chat_members:
-        update.message.reply_text(
-            f"👋 환영합니다, {member.first_name}!\n\n"
-            "이 그룹은 자동 번역이 활성화되어 있습니다 🌍\n"
-            "그냥 메시지를 보내면 자동으로 여러 언어로 번역돼요.\n\n"
-            "명령어 안내: /help"
-        )
-
 def safe_call(func):
     def wrapper(*args, **kwargs):
         for _ in range(3):
             try:
                 return func(*args, **kwargs)
-            except:
-                continue
+            except Exception as e:
+                print(f"⚠️ {func.__name__} error: {e}")
         return None
     return wrapper
 
@@ -56,12 +37,10 @@ def detect_language(text):
         "Detect the language of this text. Respond with only ONE word: "
         "Korean, English, Japanese, or Chinese.\n\nText:\n" + text
     )
-
     response = client.chat.completions.create(
-        model=GPT_MODEL,
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
     )
-
     content = response.choices[0].message.content.strip()
     print(f"🧭 Detected language: {content}")
     return content
@@ -76,27 +55,28 @@ Return only the translated sentence.
 Text: {text}
 """
     response = client.chat.completions.create(
-        model=GPT_MODEL,
+        model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
     )
     translated = response.choices[0].message.content.strip()
-    print(f"🧭 translated: {translated}")
+    print(f"✅ Translated to {target_code}: {translated}")
     return translated
 
 @safe_call
 def speech_to_text(file_path):
-    audio = openai.Audio.transcribe("whisper-1", open(file_path, "rb"))
-    return audio["text"]
+    audio = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=open(file_path, "rb")
+    )
+    return audio.text
 
 def translate_text_handler(text, update):
-    print(f"🧭 1 translate_text_handler: {text}")
     msg_id = update.message.message_id
     source_lang = detect_language(text)
-    print(f"🧭 2 translate_text_handler: {source_lang}")
     if not source_lang:
+        update.message.reply_text("⚠️ 언어 감지 실패.")
         return
     for lang, (code, label) in TARGET_LANGS.items():
-        print(f"🧭 3 translate_text_handler: {lang, source_lang}")
         if lang != source_lang:
             translated = translate(text, code)
             if translated:
@@ -114,27 +94,24 @@ def handle_voice(update, context):
         translate_text_handler(text, update)
 
 def handle_text(update, context):
+    global TRANSLATION_ACTIVE
+    print(f"📩 Received: {update.message.text}")
     if not TRANSLATION_ACTIVE:
-        print("🚫 Translation paused")
+        update.message.reply_text("🚫 Translation paused.")
         return
     translate_text_handler(update.message.text, update)
-    
 
 def cmd_on(update, context):
     global TRANSLATION_ACTIVE
-    if is_admin(update):
-        TRANSLATION_ACTIVE = True
-        update.message.reply_text("✅ Translation activated.")
+    TRANSLATION_ACTIVE = True
+    update.message.reply_text("✅ Translation activated.")
 
 def cmd_off(update, context):
     global TRANSLATION_ACTIVE
-    if is_admin(update):
-        TRANSLATION_ACTIVE = False
-        update.message.reply_text("⛔ Translation paused.")
+    TRANSLATION_ACTIVE = False
+    update.message.reply_text("⛔ Translation paused.")
 
 def cmd_lang(update, context):
-    if not is_admin(update):
-        return
     if len(context.args) == 0:
         update.message.reply_text("Usage: /lang English|Korean|Japanese|Chinese")
         return
@@ -146,18 +123,12 @@ def cmd_lang(update, context):
 
 updater = Updater(BOT_TOKEN, use_context=True)
 dp = updater.dispatcher
-
-dp.add_handler(ChatMemberHandler(welcome, ChatMemberHandler.CHAT_MEMBER))
-
 dp.add_handler(CommandHandler("on", cmd_on))
 dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("lang", cmd_lang))
-
-dp.add_handler(MessageHandler(
-    Filters.text & ~Filters.command,
-    handle_text
-))
+dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
 dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
 
+print("🤖 NWG Global Translator (OpenAI v1.0) Running...")
 updater.start_polling()
 updater.idle()
