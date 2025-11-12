@@ -101,21 +101,31 @@ def translate_text_handler(text, update):
         return
 
     results = []
+    tasks = {}
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
+        # 각 언어별 future를 명시적으로 매핑
         for lang, (code, label) in TARGET_LANGS.items():
             if lang != source_lang:
-                futures.append(executor.submit(translate, text, code))
+                future = executor.submit(translate, text, code)
+                tasks[future] = (label, code)
 
-        for (lang, (code, label)), f in zip(TARGET_LANGS.items(), futures):
-            if lang != source_lang:
-                translated = f.result()
+        # 완료된 future 순서대로 결과 수집
+        for future in concurrent.futures.as_completed(tasks):
+            label, code = tasks[future]
+            try:
+                translated = future.result()
                 if translated:
                     results.append(f"{label}:\n{translated}")
+            except Exception as e:
+                print(f"⚠️ 번역 실패 ({code}): {e}")
 
-    output = "🌍 Translations:\n\n" + "\n\n".join(results)
-    update.message.reply_text(output, reply_to_message_id=msg_id)
-
+    if results:
+        # 원문 댓글 + 언어별 줄 띄움
+        output = "🌍 Translations:\n\n" + "\n\n".join(results)
+        update.message.reply_text(output, reply_to_message_id=msg_id)
+    else:
+        update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
 
 def handle_voice(update, context):
     voice = update.message.voice or update.message.audio
