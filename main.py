@@ -49,27 +49,38 @@ def safe_call(func):
     return wrapper
 
 @safe_call
+@safe_call
 def detect_language(text):
-    print(f"🧭 detect_language: {text}")
     prompt = (
-        "Detect the language of this message. "
-        "Respond only with one word: Korean, English, Japanese, or Chinese.\n\n"
-        f"Message: {text}"
-    )
-    response = openai.ChatCompletion.create(
-        model=GPT_MODEL,
-        messages=[{"role": "user", "content": prompt}]
+        "Detect the language of this text. Respond with only ONE word: "
+        "Korean, English, Japanese, or Chinese.\n\nText:\n" + text
     )
 
     try:
-        lang = response.choices[0].message.content.strip()
-        print(f"🧭 Step 1 Detected language: {lang}")
-        if not lang:
-            lang = "Unknown"
-        print(f"🧭 Detected language: {lang}")
-        return lang
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        # 응답 전체를 출력 (Fly.io logs에서 확인 가능)
+        print("🔍 GPT raw response:", response)
+
+        # 안전한 파싱 (새 포맷 대응)
+        content = ""
+        if hasattr(response.choices[0], "message"):
+            content = response.choices[0].message.get("content", "").strip()
+        elif hasattr(response.choices[0], "text"):
+            content = response.choices[0].text.strip()
+
+        if not content:
+            print("⚠️ GPT 응답 비어 있음, 구조:", response)
+            return None
+
+        print(f"🧭 Detected language: {content}")
+        return content
+
     except Exception as e:
-        print(f"⚠️ Error parsing response: {e}")
+        print(f"⚠️ detect_language() error: {e}")
         return None
 
 @safe_call
