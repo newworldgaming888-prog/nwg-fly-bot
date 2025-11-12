@@ -145,14 +145,16 @@ def cmd_mode(update, context):
         langs = [TARGET_LANGS[m][1] for m in modes if m in TARGET_LANGS]
         update.message.reply_text(f"🈯 현재 번역 대상 언어: {', '.join(langs)} (/set {','.join(map(str, modes))})")
 
-# 봇 입장 시 자동 안내
-def bot_joined(update, context):
-    chat = update.chat
-    if update.new_chat_members:
-        for member in update.new_chat_members:
-            if member.is_bot:
-                welcome_msg = (
-                    "🤖 **NWG Global Translator** activated!\n\n"
+
+# 1-A) my_chat_member 전용 (봇이 추가/차단/복귀 될 때)
+def on_my_chat_member(update, context):
+    chat = update.my_chat_member.chat
+    new_status = update.my_chat_member.new_chat_member.status  # 'member', 'administrator', 'kicked', etc.
+
+    # 봇이 방에 정상 참가 상태가 될 때만 환영 메시지
+    if new_status in ("member", "administrator"):
+        welcome_msg = (
+             "🤖 **NWG Global Translator** activated!\n\n"
                     "Available commands:\n"
                     "• /on — Enable translation\n"
                     "• /off — Disable translation\n"
@@ -163,8 +165,29 @@ def bot_joined(update, context):
                     "• 4. 🇰🇷 Korean\n"
                     "• /mode — View current translation mode\n\n"
                     "🗣️ Now, when you type a message, it will automatically be translated into the selected languages!"
-                )
-                context.bot.send_message(chat.id, welcome_msg, parse_mode="Markdown")
+        )
+        context.bot.send_message(chat.id, welcome_msg, parse_mode="Markdown")
+
+# 1-B) 메시지의 new_chat_members 경로 (방에 누가 들어왔을 때)
+
+def on_new_members(update, context):
+    # 봇 자신이 들어온 경우만 환영
+    for member in update.message.new_chat_members:
+        if member.id == context.bot.id:
+            welcome_msg = (
+                 "🤖 **NWG Global Translator** activated!\n\n"
+                    "Available commands:\n"
+                    "• /on — Enable translation\n"
+                    "• /off — Disable translation\n"
+                    "• /set [0~4 or combination] — Set translation languages (e.g., /set 1,2)\n"
+                    "• 1. 🇺🇸 English\n"
+                    "• 2. 🇯🇵 Japanese\n"
+                    "• 3. 🇨🇳 Chinese\n"
+                    "• 4. 🇰🇷 Korean\n"
+                    "• /mode — View current translation mode\n\n"
+                    "🗣️ Now, when you type a message, it will automatically be translated into the selected languages!"
+            )
+            update.message.reply_text(welcome_msg, parse_mode="Markdown")
 
 # =============== 실행 설정 ===============
 updater = Updater(BOT_TOKEN, use_context=True)
@@ -175,7 +198,10 @@ dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("set", cmd_set))
 dp.add_handler(CommandHandler("mode", cmd_mode))
 dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
-dp.add_handler(ChatMemberHandler(bot_joined, ChatMemberHandler.CHAT_MEMBER))
+# 교체: 두 경로 모두 등록
+dp.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
+dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, on_new_members))
+
 
 print("🤖 NWG Global Translator (OpenAI + /set + /mode + Auto-Welcome) Running...")
 updater.start_polling()
