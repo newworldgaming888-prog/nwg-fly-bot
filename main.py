@@ -60,7 +60,7 @@ def detect_language(text):
 
     try:
         lang = response.choices[0].message.content.strip()
-        print(f"🧭 Detected language: {lang}")
+        print(f"🧭 Step 1 Detected language: {lang}")
         if not lang:
             lang = "Unknown"
         print(f"🧭 Detected language: {lang}")
