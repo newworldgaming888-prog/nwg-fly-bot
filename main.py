@@ -48,12 +48,25 @@ def safe_call(func):
 
 @safe_call
 def detect_language(text):
-    prompt = "Detect the language of the message. Respond only with: Korean, English, Japanese, Chinese. Message: " + text
-    response = openai.ChatCompletion.create(
-        model="gpt-5",
-        messages=[{"role":"user","content":prompt}]
+    prompt = (
+        "Detect the language of this message. "
+        "Respond only with one word: Korean, English, Japanese, or Chinese.\n\n"
+        f"Message: {text}"
     )
-    return response.choices[0].message.content.strip()
+    response = openai.ChatCompletion.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    try:
+        lang = response.choices[0].message.content.strip()
+        if not lang:
+            lang = "Unknown"
+        print(f"🧭 Detected language: {lang}")
+        return lang
+    except Exception as e:
+        print(f"⚠️ Error parsing response: {e}")
+        return None
 
 @safe_call
 def translate(text, target_code):
