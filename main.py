@@ -74,13 +74,21 @@ def translate_text_handler(text, update):
     msg_id = update.message.message_id
     source_lang = detect_language(text)
     if not source_lang:
-        update.message.reply_text("⚠️ 언어 감지 실패.")
+        update.message.reply_text("⚠️ 언어 감지 실패.", reply_to_message_id=msg_id)
         return
+
+    results = []
     for lang, (code, label) in TARGET_LANGS.items():
         if lang != source_lang:
             translated = translate(text, code)
             if translated:
-                update.message.reply_text(f"{label}:\n{translated}", reply_to_message_id=msg_id)
+                results.append(f"{label}: {translated}")
+
+    if results:
+        output = "🌍 Translations:\n" + "\n".join(results)
+        update.message.reply_text(output, reply_to_message_id=msg_id)
+    else:
+        update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
 
 def handle_voice(update, context):
     voice = update.message.voice or update.message.audio
