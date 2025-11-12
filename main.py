@@ -12,8 +12,8 @@ if os.environ.get("RUN_ENV") != "fly":
 BOT_TOKEN = "8551777734:AAEK-FaD7W_aY4HsJEXAhMXrq_EtsDkaDKQ"
 OPENAI_KEY = "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"
 
-print(f"api_key: {os.getenv("OPENAI_KEY")}")
-client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
+# client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
+client = OpenAI(api_key=OPENAI_KEY)
 
 ADMIN_ID = 123456789
 
