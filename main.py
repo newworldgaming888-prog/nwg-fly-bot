@@ -1,6 +1,6 @@
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 from openai import OpenAI
-from pydub import AudioSegment
+# from pydub import AudioSegment
 import os
 import concurrent.futures
 
@@ -45,7 +45,7 @@ def detect_language(text):
         messages=[{"role": "user", "content": prompt}]
     )
     content = response.choices[0].message.content.strip()
-    print(f"🧭 Detected language: {content}")
+    # print(f"🧭 Detected language: {content}")
     return content
 
 @safe_call
@@ -62,7 +62,7 @@ Text: {text}
         messages=[{"role": "user", "content": prompt}]
     )
     translated = response.choices[0].message.content.strip()
-    print(f"✅ Translated to {target_code}: {translated}")
+    # print(f"✅ Translated to {target_code}: {translated}")
     return translated
 
 @safe_call
@@ -72,26 +72,6 @@ def speech_to_text(file_path):
         file=open(file_path, "rb")
     )
     return audio.text
-
-# def translate_text_handler(text, update):
-#     msg_id = update.message.message_id
-#     source_lang = detect_language(text)
-#     if not source_lang:
-#         update.message.reply_text("⚠️ 언어 감지 실패.", reply_to_message_id=msg_id)
-#         return
-
-#     results = []
-#     for lang, (code, label) in TARGET_LANGS.items():
-#         if lang != source_lang:
-#             translated = translate(text, code)
-#             if translated:
-#                 results.append(f"{label}:\n{translated}")
-
-#     if results:
-#         output = "🌍 Translations:\n\n" + "\n\n".join(results)
-#         update.message.reply_text(output, reply_to_message_id=msg_id)
-#     else:
-#         update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
 
 def translate_text_handler(text, update):
     msg_id = update.message.message_id
@@ -127,16 +107,16 @@ def translate_text_handler(text, update):
     else:
         update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
 
-def handle_voice(update, context):
-    voice = update.message.voice or update.message.audio
-    file = voice.get_file()
-    ogg = "/tmp/input.ogg"
-    wav = "/tmp/input.wav"
-    file.download(ogg)
-    AudioSegment.from_file(ogg).export(wav, format="wav")
-    text = speech_to_text(wav)
-    if text:
-        translate_text_handler(text, update)
+# def handle_voice(update, context):
+#     voice = update.message.voice or update.message.audio
+#     file = voice.get_file()
+#     ogg = "/tmp/input.ogg"
+#     wav = "/tmp/input.wav"
+#     file.download(ogg)
+#     AudioSegment.from_file(ogg).export(wav, format="wav")
+#     text = speech_to_text(wav)
+#     if text:
+#         translate_text_handler(text, update)
 
 def handle_text(update, context):
     global TRANSLATION_ACTIVE
@@ -172,7 +152,7 @@ dp.add_handler(CommandHandler("on", cmd_on))
 dp.add_handler(CommandHandler("off", cmd_off))
 dp.add_handler(CommandHandler("lang", cmd_lang))
 dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
-dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
+# dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
 
 print("🤖 NWG Global Translator (OpenAI v1.0) Running...")
 updater.start_polling()
