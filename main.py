@@ -154,15 +154,15 @@ def bot_joined(update, context):
                 welcome_msg = (
                     "🤖 **NWG Global Translator** activated!\n\n"
                     "Available commands:\n"
-                    "• /on — 번역 활성화\n"
-                    "• /off — 번역 중지\n"
-                    "• /set [0~4 or 조합] — 번역 언어 설정 (예: /set 1,2)\n"
+                    "• /on — Enable translation\n"
+                    "• /off — Disable translation\n"
+                    "• /set [0~4 or combination] — Set translation languages (e.g., /set 1,2)\n"
                     "• 1. 🇺🇸 English\n"
                     "• 2. 🇯🇵 Japanese\n"
                     "• 3. 🇨🇳 Chinese\n"
                     "• 4. 🇰🇷 Korean\n"
-                    "• /mode — 현재 번역 모드 보기\n\n"
-                    "🗣️ 이제 메시지를 입력하면 자동으로 지정된 언어로 번역됩니다!"
+                    "• /mode — View current translation mode\n\n"
+                    "🗣️ Now, when you type a message, it will automatically be translated into the selected languages!"
                 )
                 context.bot.send_message(chat.id, welcome_msg, parse_mode="Markdown")
 
