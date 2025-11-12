@@ -1,6 +1,5 @@
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ChatMemberHandler
 from openai import OpenAI
-# from pydub import AudioSegment
 import os
 import concurrent.futures
 
@@ -18,12 +17,15 @@ client = OpenAI(api_key=OPENAI_KEY)
 TRANSLATION_ACTIVE = True
 
 TARGET_LANGS = {
-    "Korean": ("ko", "🇰🇷 Korean"),
-    "English": ("en", "🇺🇸 English"),
-    "Japanese": ("ja", "🇯🇵 Japanese"),
-    "Chinese": ("zh-CN", "🇨🇳 Chinese")
+    1: ("en", "🇺🇸 English"),
+    2: ("ja", "🇯🇵 Japanese"),
+    3: ("zh-CN", "🇨🇳 Chinese"),
+    4: ("ko", "🇰🇷 Korean")
 }
 
+user_modes = {}  # 유저별 번역 모드 저장
+
+# =============== 공통 유틸 ===============
 def safe_call(func):
     def wrapper(*args, **kwargs):
         for _ in range(3):
@@ -44,9 +46,7 @@ def detect_language(text):
         model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
-    content = response.choices[0].message.content.strip()
-    # print(f"🧭 Detected language: {content}")
-    return content
+    return response.choices[0].message.content.strip()
 
 @safe_call
 def translate(text, target_code):
@@ -61,36 +61,34 @@ Text: {text}
         model=GPT_MODEL,
         messages=[{"role": "user", "content": prompt}]
     )
-    translated = response.choices[0].message.content.strip()
-    # print(f"✅ Translated to {target_code}: {translated}")
-    return translated
+    return response.choices[0].message.content.strip()
 
-@safe_call
-def speech_to_text(file_path):
-    audio = client.audio.transcriptions.create(
-        model="whisper-1",
-        file=open(file_path, "rb")
-    )
-    return audio.text
-
+# =============== 번역 로직 ===============
 def translate_text_handler(text, update):
     msg_id = update.message.message_id
+    user_id = update.message.from_user.id
     source_lang = detect_language(text)
     if not source_lang:
         update.message.reply_text("⚠️ 언어 감지 실패.", reply_to_message_id=msg_id)
         return
 
+    modes = user_modes.get(user_id, [0])  # 기본 0
     results = []
     tasks = {}
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # 각 언어별 future를 명시적으로 매핑
-        for lang, (code, label) in TARGET_LANGS.items():
-            if lang != source_lang:
-                future = executor.submit(translate, text, code)
-                tasks[future] = (label, code)
+        if modes == [0]:
+            for _, (code, label) in TARGET_LANGS.items():
+                if source_lang.lower() not in label.lower():
+                    future = executor.submit(translate, text, code)
+                    tasks[future] = (label, code)
+        else:
+            for mode in modes:
+                if mode in TARGET_LANGS:
+                    code, label = TARGET_LANGS[mode]
+                    future = executor.submit(translate, text, code)
+                    tasks[future] = (label, code)
 
-        # 완료된 future 순서대로 결과 수집
         for future in concurrent.futures.as_completed(tasks):
             label, code = tasks[future]
             try:
@@ -101,23 +99,12 @@ def translate_text_handler(text, update):
                 print(f"⚠️ 번역 실패 ({code}): {e}")
 
     if results:
-        # 원문 댓글 + 언어별 줄 띄움
         output = "🌍 Translations:\n\n" + "\n\n".join(results)
         update.message.reply_text(output, reply_to_message_id=msg_id)
     else:
         update.message.reply_text("⚠️ 번역 결과가 없습니다.", reply_to_message_id=msg_id)
 
-# def handle_voice(update, context):
-#     voice = update.message.voice or update.message.audio
-#     file = voice.get_file()
-#     ogg = "/tmp/input.ogg"
-#     wav = "/tmp/input.wav"
-#     file.download(ogg)
-#     AudioSegment.from_file(ogg).export(wav, format="wav")
-#     text = speech_to_text(wav)
-#     if text:
-#         translate_text_handler(text, update)
-
+# =============== 명령어 핸들러 ===============
 def handle_text(update, context):
     global TRANSLATION_ACTIVE
     print(f"📩 Received: {update.message.text}")
@@ -136,24 +123,56 @@ def cmd_off(update, context):
     TRANSLATION_ACTIVE = False
     update.message.reply_text("⛔ Translation paused.")
 
-def cmd_lang(update, context):
-    if len(context.args) == 0:
-        update.message.reply_text("Usage: /lang English|Korean|Japanese|Chinese")
-        return
-    selected = context.args[0].capitalize()
-    if selected not in TARGET_LANGS:
-        update.message.reply_text("❌ Invalid language.")
-        return
-    update.message.reply_text(f"🌍 Base translation language set to: {selected}")
+def cmd_set(update, context):
+    user_id = update.message.from_user.id
+    try:
+        raw = context.args[0]
+        modes = [int(x) for x in raw.split(',')]
+        for m in modes:
+            if m not in [0, 1, 2, 3, 4]:
+                raise ValueError
+        user_modes[user_id] = modes
+        update.message.reply_text(f"✅ 번역 모드가 /set {raw} 으로 설정되었습니다.")
+    except:
+        update.message.reply_text("❌ 사용법: /set [0~4] 또는 /set 1,2,3 형식으로 입력")
 
+def cmd_mode(update, context):
+    user_id = update.message.from_user.id
+    modes = user_modes.get(user_id, [0])
+    if modes == [0]:
+        update.message.reply_text("🌐 현재 모드: 자동 번역 모드 (/set 0)")
+    else:
+        langs = [TARGET_LANGS[m][1] for m in modes if m in TARGET_LANGS]
+        update.message.reply_text(f"🈯 현재 번역 대상 언어: {', '.join(langs)} (/set {','.join(map(str, modes))})")
+
+# 봇 입장 시 자동 안내
+def bot_joined(update, context):
+    chat = update.chat
+    if update.new_chat_members:
+        for member in update.new_chat_members:
+            if member.is_bot:
+                welcome_msg = (
+                    "🤖 **NWG Global Translator** activated!\n\n"
+                    "Available commands:\n"
+                    "• /on — 번역 활성화\n"
+                    "• /off — 번역 중지\n"
+                    "• /set [0~4 or 조합] — 번역 언어 설정 (예: /set 1,2)\n"
+                    "• /mode — 현재 번역 모드 보기\n\n"
+                    "🗣️ 이제 메시지를 입력하면 자동으로 지정된 언어로 번역됩니다!"
+                )
+                context.bot.send_message(chat.id, welcome_msg, parse_mode="Markdown")
+
+# =============== 실행 설정 ===============
 updater = Updater(BOT_TOKEN, use_context=True)
 dp = updater.dispatcher
+
 dp.add_handler(CommandHandler("on", cmd_on))
 dp.add_handler(CommandHandler("off", cmd_off))
-dp.add_handler(CommandHandler("lang", cmd_lang))
+dp.add_handler(CommandHandler("set", cmd_set))
+dp.add_handler(CommandHandler("mode", cmd_mode))
 dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
-# dp.add_handler(MessageHandler(Filters.voice | Filters.audio, handle_voice))
+dp.add_handler(ChatMemberHandler(bot_joined, ChatMemberHandler.CHAT_MEMBER))
 
-print("🤖 NWG Global Translator (OpenAI v1.0) Running...")
+print("🤖 NWG Global Translator (OpenAI + /set + /mode + Auto-Welcome) Running...")
 updater.start_polling()
 updater.idle()
