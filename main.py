@@ -78,16 +78,20 @@ def translate_text_handler(text, update):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         if modes == [0]:
+            # 기본 모드: 입력 언어 제외한 모든 언어로 번역
             for _, (code, label) in TARGET_LANGS.items():
                 if source_lang.lower() not in label.lower():
                     future = executor.submit(translate, text, code)
                     tasks[future] = (label, code)
         else:
+            # 지정 모드
             for mode in modes:
                 if mode in TARGET_LANGS:
                     code, label = TARGET_LANGS[mode]
-                    future = executor.submit(translate, text, code)
-                    tasks[future] = (label, code)
+                    # 🟢 입력 언어와 같은 언어는 제외
+                    if source_lang.lower() not in label.lower():
+                        future = executor.submit(translate, text, code)
+                        tasks[future] = (label, code)
 
         for future in concurrent.futures.as_completed(tasks):
             label, code = tasks[future]
