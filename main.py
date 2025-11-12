@@ -155,7 +155,7 @@ def cmd_mode(update, context):
 # 1-A) my_chat_member 전용 (봇이 추가/차단/복귀 될 때)
 def on_my_chat_member(update, context):
     global isBotJoin
-    if isBotJoin == True:
+    if isBotJoin:
         isBotJoin = False
         return
     
