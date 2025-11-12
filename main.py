@@ -54,7 +54,7 @@ def detect_language(text):
         f"Message: {text}"
     )
     response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
+        model="gpt-5",
         messages=[{"role": "user", "content": prompt}]
     )
 
